@@ -154,6 +154,13 @@ read_sector:
 	jmp 1f
 1:
 
+##### Turn on EM bit in CR0, forcing most floating-point instructions
+##### to trap.  We don't support floating-point or MMX.
+
+	movl %cr0, %eax
+	orl $CR0_EM, %eax
+	movl %eax, %cr0
+
 ##### Jump to kernel entry point.
 
 	movl $0xc0007c00, %esp
