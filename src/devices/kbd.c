@@ -25,6 +25,9 @@ static unsigned shift_state;
 /* Keyboard buffer. */
 static struct intq buffer;
 
+/* Number of keys pressed. */
+static int64_t key_cnt;
+
 static intr_handler_func keyboard_interrupt;
 
 /* Initializes the keyboard. */
@@ -48,6 +51,13 @@ kbd_getc (void)
   intr_set_level (old_level);
 
   return key;
+}
+
+/* Prints keyboard statistics. */
+void
+kbd_print_stats (void)
+{
+  printf ("Keyboard: %lld keys pressed\n", key_cnt);
 }
 
 /* Maps a set of contiguous scancodes into characters. */
@@ -161,7 +171,10 @@ keyboard_interrupt (struct intr_frame *args UNUSED)
 
           /* Append to keyboard buffer. */
           if (!intq_full (&buffer))
-            intq_putc (&buffer, c);
+            {
+              key_cnt++;
+              intq_putc (&buffer, c);
+            }
         }
     }
   else
