@@ -38,8 +38,10 @@ build ();
 exit if $action eq 'build';
 
 run_and_grade_tests ();
-grade_mlfqs_speedup ();
-grade_mlfqs_priority ();
+if (defined ($result{'mlfqs-on'}) && defined ($result{'mlfqs-off'})) {
+    grade_mlfqs_speedup ();
+    grade_mlfqs_priority ();
+}
 write_grades ();
 write_details ();
 exit if $action eq 'test';
