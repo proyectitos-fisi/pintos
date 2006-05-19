@@ -375,7 +375,6 @@ of IDE disk hardware.
 
 @menu
 * Indexed Files FAQ::
-* Subdirectories FAQ::
 * Buffer Cache FAQ::
 @end menu
 
