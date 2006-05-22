@@ -150,6 +150,13 @@ inode_reopen (struct inode *inode)
   return inode;
 }
 
+/* Returns INODE's inode number. */
+disk_sector_t
+inode_get_inumber (const struct inode *inode)
+{
+  return inode->sector;
+}
+
 /* Closes INODE and writes it to disk.
    If this was the last reference to INODE, frees its memory.
    If INODE was also a removed inode, frees its blocks. */
