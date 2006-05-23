@@ -9,10 +9,16 @@ int
 main (int argc, char *argv[])
 {
   if (argc != 2)
-    PANIC ("usage: %s DIRECTORY\n", argv[0]);
+    {
+      printf ("usage: %s DIRECTORY\n", argv[0]);
+      return EXIT_FAILURE;
+    }
 
   if (!mkdir (argv[1]))
-    PANIC ("%s: mkdir failed\n", argv[1]);
+    {
+      printf ("%s: mkdir failed\n", argv[1]);
+      return EXIT_FAILURE;
+    }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
