@@ -58,7 +58,10 @@ timer_calibrate (void)
      still less than one timer tick. */
   loops_per_tick = 1u << 10;
   while (!too_many_loops (loops_per_tick << 1))
-    loops_per_tick <<= 1;
+    {
+      loops_per_tick <<= 1;
+      ASSERT (loops_per_tick != 0);
+    }
 
   /* Refine the next 8 bits of loops_per_tick. */
   high_bit = loops_per_tick;
