@@ -3,7 +3,7 @@ diff -Naur bochs-2.6.2.orig/configure bochs-2.6.2/configure
 +++ bochs-2.6.2/configure	2014-01-06 16:39:23.000000000 -0800
 @@ -24202,8 +24202,8 @@
    fi
-
+ 
    if test "$PKGCONFIG" != not_found; then
 -    X_CFLAGS="`pkg-config --cflags x11`"
 -    X_LIBS="`pkg-config --libs x11` $XPM_LIB -lXrandr"

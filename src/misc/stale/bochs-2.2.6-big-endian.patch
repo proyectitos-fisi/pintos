@@ -2,7 +2,7 @@ diff -urp bochs-2.2.6/gdbstub.cc bochs-2.2.6.orig/gdbstub.cc
 --- bochs-2.2.6.orig/gdbstub.cc	2006-01-17 09:15:29.000000000 -0800
 +++ bochs-2.2.6/gdbstub.cc	2006-04-03 13:47:39.000000000 -0700
 @@ -672,35 +672,36 @@
-
+             
            case 'g':
  #if !BX_SUPPORT_X86_64
 -            registers[0] = EAX;
@@ -32,17 +32,17 @@ diff -urp bochs-2.2.6/gdbstub.cc bochs-2.2.6.orig/gdbstub.cc
 +                WriteHostDWordToLittleEndian(registers + 8, EIP);
                }
 -            registers[9] = BX_CPU_THIS_PTR read_eflags();
--            registers[10] =
+-            registers[10] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_CS].selector.value;
--            registers[11] =
+-            registers[11] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_SS].selector.value;
--            registers[12] =
+-            registers[12] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_DS].selector.value;
--            registers[13] =
+-            registers[13] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_ES].selector.value;
--            registers[14] =
+-            registers[14] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_FS].selector.value;
--            registers[15] =
+-            registers[15] = 
 -              BX_CPU_THIS_PTR sregs[BX_SEG_REG_GS].selector.value;
 +            WriteHostDWordToLittleEndian(registers + 9,
 +                                         BX_CPU_THIS_PTR read_eflags());

@@ -8,7 +8,7 @@
 +                           put_reply("Eff");
                          }
                     }
-                  break;
+                  break;                    
 @@ -761,7 +761,7 @@
                }
              else
@@ -17,13 +17,13 @@
 +                 put_reply("Eff");
                }
              break;
-
+             
 @@ -782,7 +782,7 @@
                }
              else
                {
 -                 put_reply("ENN");
 +                 put_reply("Eff");
-               }
+               }          
              break;
-
+ 

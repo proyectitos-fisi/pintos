@@ -8,12 +8,12 @@ index c2d6c6b..d37cf12 100644
  int bx_gdbstub_check(unsigned int eip);
 +void bx_gdbstub_exception(unsigned int nr);
  #define GDBSTUB_STOP_NO_REASON   (0xac0)
-
+ 
  #if BX_SUPPORT_SMP
 @@ -589,4 +590,6 @@ BX_CPP_INLINE Bit64u bx_bswap64(Bit64u val64)
  #define CopyHostQWordLittleEndian(hostAddrDst,  hostAddrSrc) \
      (* (Bit64u *)(hostAddrDst)) = (* (Bit64u *)(hostAddrSrc));
-
+ 
 +extern int jitter;
 +
  #endif  /* BX_BOCHS_H */
@@ -22,9 +22,9 @@ index db38d1b..b2c5f29 100644
 --- a/cpu/exception.cc
 +++ b/cpu/exception.cc
 @@ -914,6 +914,10 @@ void BX_CPU_C::exception(unsigned vector, Bit16u error_code)
-
+ 
    BX_CPU_THIS_PTR last_exception_type = exception_type;
-
+ 
 +#if BX_GDBSTUB
 +  bx_gdbstub_exception(vector);
 +#endif
@@ -41,14 +41,14 @@ index da600b4..577938d 100644
  #define GDBSTUB_TRACE                   (0xac2)
  #define GDBSTUB_USER_BREAK              (0xac3)
 +#define GDBSTUB_EXCEPTION_0E            (0xac4)
-
+ 
  static bx_list_c *gdbstub_list;
  static int listen_socket_fd;
 @@ -317,6 +318,12 @@ int bx_gdbstub_check(unsigned int eip)
    return GDBSTUB_STOP_NO_REASON;
  }
-
-+void bx_gdbstub_exception(unsigned int nr)
+ 
++void bx_gdbstub_exception(unsigned int nr) 
 +{
 +    if (nr == 0x0e)
 +        last_stop_reason = GDBSTUB_EXCEPTION_0E;
@@ -84,13 +84,13 @@ index 09dcd8e..7e335d4 100644
 --- a/iodev/pit82c54.cc
 +++ b/iodev/pit82c54.cc
 @@ -49,6 +49,7 @@
-
+ 
  #include "iodev.h"
  #include "pit82c54.h"
 +#include <stdlib.h>
  #define LOG_THIS this->
-
-
+ 
+ 
 @@ -410,7 +411,14 @@ void BX_CPP_AttrRegparmN(1) pit_82C54::clock(Bit8u cnum)
        case 2:
          if (thisctr.count_written) {
@@ -113,10 +113,10 @@ index 0f11e31..008f05f 100644
 +++ b/main.cc
 @@ -101,6 +101,7 @@ BOCHSAPI BX_CPU_C bx_cpu;
  BOCHSAPI BX_MEM_C bx_mem;
-
+ 
  char *bochsrc_filename = NULL;
 +int jitter = 0;
-
+ 
  void bx_print_header()
  {
 @@ -639,6 +640,13 @@ int bx_init_main(int argc, char *argv[])

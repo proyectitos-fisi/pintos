@@ -2,13 +2,13 @@ diff -urp bochs-2.2.6/iodev/pit82c54.cc bochs-2.2.6.orig/iodev/pit82c54.cc
 --- bochs-2.2.6.orig/iodev/pit82c54.cc	2006-01-08 12:39:08.000000000 -0800
 +++ bochs-2.2.6/iodev/pit82c54.cc	2006-04-03 14:00:27.000000000 -0700
 @@ -28,6 +28,7 @@
-
+ 
  #include "iodev.h"
  #include "pit82c54.h"
 +#include <stdlib.h>
  #define LOG_THIS this->
-
-
+ 
+ 
 @@ -359,7 +360,13 @@
        case 2:
  	if(thisctr.count_written) {
@@ -29,10 +29,10 @@ diff -urp bochs-2.2.6/main.cc bochs-2.2.6.orig/main.cc
 +++ bochs-2.2.6/main.cc	2006-04-03 14:00:54.000000000 -0700
 @@ -105,6 +105,7 @@
  #endif
-
+ 
  char *bochsrc_filename = NULL;
 +int jitter = 0;
-
+ 
  void bx_print_header ()
  {
 @@ -459,6 +460,13 @@
@@ -53,9 +53,9 @@ diff -up /home/blp/cs140/bochs-2.2.6/bochs.h\~ /home/blp/cs140/bochs-2.2.6/bochs
 --- bochs-2.2.6/bochs.h.orig	2006-01-28 08:16:02.000000000 -0800
 +++ bochs-2.2.6/bochs.h	2006-04-03 14:03:54.000000000 -0700
 @@ -698,4 +698,6 @@ int bx_init_hardware ();
-
+ 
  #endif
-
+ 
 +extern int jitter;
 +
  #endif  /* BX_BOCHS_H */

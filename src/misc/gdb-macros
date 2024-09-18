@@ -35,18 +35,18 @@ define dumplist
 end
 
 document dumplist
-    Dump the content of a Pintos list,
+    Dump the content of a Pintos list, 
     invoke as dumplist name_of_list name_of_struct name_of_elem_in_list_struct
 end
 
 # print a thread's backtrace, given a pointer to the struct thread *
 define btthread
-   if $arg0 == ($esp - ((unsigned)$esp % 4096))
+   if $arg0 == ($esp - ((unsigned)$esp % 4096)) 
 	bt
    else
-       set $saveEIP = $eip
-       set $saveESP = $esp
-       set $saveEBP = $ebp
+       set $saveEIP = $eip 
+       set $saveESP = $esp 
+       set $saveEBP = $ebp 
 
        set $esp = ((struct thread *)$arg0)->stack
        set $ebp = ((void**)$esp)[2]
@@ -84,7 +84,7 @@ end
 
 # print backtraces of all threads (based on 'all_list' all threads list)
 define btthreadall
-    btthreadlist &all_list allelem
+    btthreadlist all_list allelem
 end
 document btthreadall
     Print backtraces of all threads
@@ -102,8 +102,29 @@ document btpagefault
     Print a backtrace of the current thread after a pagefault
 end
 
+set $lastcs = -1
+
 # invoked whenever the program stops
 define hook-stop
+    #
+    # Snippet borrowed from JOS's gdbinit
+    #
+    # There doesn't seem to be a good way to detect if we're in 16- or
+    # 32-bit mode, but we always run with CS == 8 in 32-bit mode.
+    if $cs == 8 || $cs == 27
+      if $lastcs != 8 && $lastcs != 27
+        set architecture i386
+      end
+      x/i $pc
+    else
+      if $lastcs == -1 || $lastcs == 8 || $lastcs == 27
+        set architecture i8086
+      end
+      # Translate the segment:offset into a physical address
+      printf "[%4x:%4x] ", $cs, $eip
+      x/i $cs*16+$eip
+    end
+    set $lastcs = $cs
     # stopped at stub #0E = #14 (page fault exception handler stub)
     if ($eip == intr0e_stub)
         set $savedeip = ((void**)$esp)[1]

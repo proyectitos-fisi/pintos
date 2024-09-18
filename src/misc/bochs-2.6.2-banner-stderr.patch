@@ -2,7 +2,7 @@ diff -Naur bochs-2.6.2/main.cc bochs-2.6.2.new/main.cc
 --- bochs-2.6.2/main.cc	2014-01-06 23:29:42.000000001 -0800
 +++ bochs-2.6.2.new/main.cc	2014-01-06 22:33:42.000000001 -0800
 @@ -105,23 +105,23 @@
-
+ 
  void bx_print_header()
  {
 -  printf("%s\n", divider);
@@ -28,5 +28,5 @@ diff -Naur bochs-2.6.2/main.cc bochs-2.6.2.new/main.cc
 -  printf("%s\n", divider);
 +  fprintf(stderr, "%s\n", divider);
  }
-
+ 
  #if BX_WITH_CARBON

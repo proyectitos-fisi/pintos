@@ -5,7 +5,7 @@ diff -u bochs-2.2.6/cpu/exception.cc\~ bochs-2.2.6/cpu/exception.cc
 @@ -1033,6 +1033,10 @@ void BX_CPU_C::exception(unsigned vector
      BX_CPU_THIS_PTR curr_exception[0] = exception_type;
    }
-
+ 
 +#if BX_GDBSTUB
 +  bx_gdbstub_exception(vector);
 +#endif
@@ -22,14 +22,14 @@ diff -u bochs-2.2.6/gdbstub.cc\~ bochs-2.2.6/gdbstub.cc
  #define GDBSTUB_TRACE                   (0xac2)
  #define GDBSTUB_USER_BREAK              (0xac3)
 +#define GDBSTUB_EXCEPTION_0E            (0xac4)
-
+ 
  static int listen_socket_fd;
  static int socket_fd;
 @@ -271,6 +272,12 @@ int bx_gdbstub_check(unsigned int eip)
     return(GDBSTUB_STOP_NO_REASON);
  }
-
-+void bx_gdbstub_exception(unsigned int nr)
+ 
++void bx_gdbstub_exception(unsigned int nr) 
 +{
 +    if (nr == 0x0e)
 +        last_stop_reason = GDBSTUB_EXCEPTION_0E;
@@ -75,5 +75,5 @@ diff -u bochs-2.2.6/bochs.h\~ bochs-2.2.6/bochs.h
  int bx_gdbstub_check(unsigned int eip);
 +void bx_gdbstub_exception(unsigned int nr);
  #define GDBSTUB_STOP_NO_REASON   (0xac0)
-
+ 
  #if BX_SUPPORT_SMP
