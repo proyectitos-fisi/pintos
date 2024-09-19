@@ -12,9 +12,35 @@ sudo apt install build-essential qemu-system-x86
 ```
 
 ## System setup
-
+<!-- 
 ```bash
 source ./env.sh
+```
+-->
+
+```bash
+  docker compose up --build
+```
+
+In another terminal, run:
+
+```bash
+docker compose exec pintos bash
+```
+
+```bash
+root@pwn13:~# cd pintos/src/threads/
+root@pwn13::~/pintos/src/threads# make
+root@pwn13::~/pintos/src/threads# cd build
+root@pwn13::~/pintos/src/threads/build# pintos --qemu -- 
+```
+
+Pintos has succesfully booted! :)
+
+Run multiple alarm:
+
+```bash
+root@pwn13::~/pintos/src/threads/build# pintos --qemu -- run alarm-multiple
 ```
 
 ## Build

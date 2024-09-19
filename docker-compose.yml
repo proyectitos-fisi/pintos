@@ -1,0 +1,8 @@
+services:
+  pintos:
+    container_name: pintos-pwnies-app
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+      - .:/home/pwnies/pintos
