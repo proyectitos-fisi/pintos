@@ -21,20 +21,20 @@
 # Set stack to grow downward from 60 kB (after boot, the kernel
 # continues to use this stack for its initial thread).
 
-	sub %ax, %ax
-	mov %ax, %ds
-	mov %ax, %ss
-	mov $0xf000, %esp
+	sub %ax, %ax        # Zero the high 16 bits of the segment registers.
+	mov %ax, %ds        # Data segment
+	mov %ax, %ss        # Stack segment
+	mov $0xf000, %esp   # Extended stack pointer
 
 # Configure serial port so we can report progress without connected VGA.
 # See [IntrList] for details.
-	sub %dx, %dx			# Serial port 0.
-	mov $0xe3, %al			# 9600 bps, N-8-1.
-					# AH is already 0 (Initialize Port).
+	sub %dx, %dx		# Serial port 0.
+	mov $0xe3, %al		# Baud rate: 9600 bps, N-8-1.
+					    # AH is already 0, because AX = [AH, AL] (Initialize Port).
 	int $0x14			# Destroys AX.
 
 	call puts
-	.string "PiLo"
+	.string "<3 Pwnies"
 
 #### Read the partition table on each system hard disk and scan for a
 #### partition of type 0x20, which is the type that we use for a
@@ -52,7 +52,8 @@ read_mbr:
 	sub %ebx, %ebx			# Sector 0.
 	mov $0x2000, %ax		# Use 0x20000 for buffer.
 	mov %ax, %es
-	call read_sector
+	call read_sector        # Try to read the MBR starting at sector 0. Sets CF on failure.
+
 	jc no_such_drive
 
 	# Print hd[a-z].
@@ -94,7 +95,11 @@ next_partition:
 
 next_drive:
 	# No match on this drive, go on to the next one.
-	inc %dl
+	inc %dl                # read_sector (specifically DISK interrupt) takes the drive number in DL.
+	                       # See p. 32 <http://guideme.itgo.com/atozofc/ch71_1.pdf>
+
+						   # This number just keeps incrementing until we find a valid partition,
+						   # or we reach an invalid drive number.
 	jnc read_mbr
 
 no_such_drive:
@@ -104,6 +109,8 @@ no_boot_partition:
 	.string "\rNot found\r"
 
 	# Notify BIOS that boot failed.  See [IntrList].
+	# DISKLESS BOOT HOOK interrupt
+	# See <http://www.ctyme.com/intr/rb-2241.htm>
 	int $0x18
 
 #### We found a kernel.  The kernel's drive is in DL.  The partition
@@ -226,6 +233,10 @@ putc:	pusha
 #### reads the specified sector into memory at ES:0000.  Returns with
 #### carry set on error, clear otherwise.  Preserves all
 #### general-purpose registers.
+
+#### Note: 0x80 is 0b10000000, where the high bit is for "hard disk"
+#### and the low 7 bits are for the drive number.  This is the format
+#### that the BIOS (int 0x13) expects for the drive number.
 
 read_sector:
 	pusha
