@@ -24,6 +24,11 @@ increases responsiveness, and makes Linux more suitable for desktop and real-tim
 
 ### Pintos is preemptive
 
+Pintos is a preemptive kernel, that is, **kernel threads** can be preempted at any time.
+Furthermore, interrupts are enabled by default, requiring more explicit synchronization.
+
+See [Disabling interrupts](./interrupts.md#disabling-interrupts).
+
 ### Preemption and user code
 
 In both models (preemtive and non preemtive kernels) user code is always preemptive, that is,
