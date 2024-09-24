@@ -127,6 +127,9 @@ void thread_sleep (int64_t ticks);
 void thread_awake(int64_t ticks);
 bool thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
 
+// 🧵 project1/task2 definitions
+bool thread_compare_priority (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
+
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
