@@ -362,10 +362,11 @@ thread_exit (void)
 
 /* 🧵 project1/task2 */
 bool
-thread_compare_priority(struct list_elem *a, struct list_elem *b, void *aux) {
-    struct thread *ta = list_entry(a, struct thread, elem);
-    struct thread *tb = list_entry(b, struct thread, elem);
-    return ta->priority > tb->priority;
+thread_compare_priority (struct list_elem *a, struct list_elem *b, void *aux)
+{
+  struct thread *ta = list_entry (a, struct thread, elem);
+  struct thread *tb = list_entry (b, struct thread, elem);
+  return ta->priority > tb->priority;
 }
 
 /* Yields the CPU.  The current thread is not put to sleep and
