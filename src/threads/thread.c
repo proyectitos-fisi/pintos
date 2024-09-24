@@ -24,7 +24,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-/*  */
+/* 🧵 project1/task1
+   List of all currently-sleeping threads ordered by [wakeup_tick]
+   ascending. Processes in this list are in THREAD_BLOCKED state,
+   waiting to be woken up by the timer interrupt handler. */
 static struct list sleep_list;
 
 /* List of all processes.  Processes are added to this list
@@ -95,8 +98,8 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  
-  /* Initialize sleep list */
+
+  // 🧵 project1/task1
   list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
@@ -123,16 +126,21 @@ thread_start (void)
   sema_down (&idle_started);
 }
 
-/* Compares the wakeup_tick value of two threads to determine their order in the ascending list. */
+/* 🧵 project1/task1
+   Comparator function used by thread_sleep to insert threads into
+   the sleep_list */
 bool
-thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
+thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_,
+                         void *aux UNUSED)
 {
   struct thread *a = list_entry (a_, struct thread, elem);
   struct thread *b = list_entry (b_, struct thread, elem);
   return a->wakeup_tick < b->wakeup_tick;
 }
 
-/* Puts the current thread to sleep until the specified number of ticks has passed. */
+/* 🧵 project1/task1
+   Puts the current thread to sleep until the specified number of ticks
+   has passed. */
 void
 thread_sleep (int64_t ticks)
 {
@@ -145,33 +153,32 @@ thread_sleep (int64_t ticks)
   old_level = intr_disable ();
 
   cur->wakeup_tick = ticks;
-
-  list_insert_ordered (&sleep_list, &cur->elem, thread_wakeup_tick_less, NULL); 
-
+  list_insert_ordered (&sleep_list, &cur->elem, thread_wakeup_tick_less, NULL);
   thread_block ();
 
   intr_set_level (old_level);
 }
 
-/* Wakes up all threads that are scheduled to wake up at or before the specified number of ticks. */
+/* 🧵 project1/task1
+   Wakes up all threads that are scheduled to wake up at or before the
+   specified number of ticks. */
 void
-thread_awake(int64_t ticks)
+thread_awake (int64_t ticks)
 {
-  struct list_elem *elem_t = list_begin(&sleep_list);
+  struct list_elem *te = list_begin (&sleep_list);
   struct thread *t;
 
-  while (elem_t != list_end(&sleep_list)) {
-    t = list_entry(elem_t, struct thread, elem);
+  while (!list_empty (&sleep_list))
+    {
+      te = list_begin (&sleep_list);
+      t = list_entry (te, struct thread, elem);
 
-    if (t->wakeup_tick > ticks) {
-      break;
+      if (t->wakeup_tick > ticks)
+        break;
+
+      list_remove (t);
+      thread_unblock (t);
     }
-
-    struct list_elem *next = list_next(elem_t);
-    list_remove(elem_t);
-    thread_unblock(t);
-    elem_t = next;
-  }
 }
 
 /* Called by the timer interrupt handler at each timer tick.
