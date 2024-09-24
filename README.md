@@ -4,6 +4,7 @@
 
 - Latest CS212 course reference: <https://www.scs.stanford.edu/24wi-cs212/pintos/pintos.html>
 - Peking University reference: <https://pkuflyingpig.gitbook.io/pintos>
+- Kernel newbies: <https://kernelnewbies.org/>
 
 ## Requirements
 
@@ -12,14 +13,14 @@ sudo apt install build-essential qemu-system-x86
 ```
 
 ## System setup
-<!-- 
+<!--
 ```bash
 source ./env.sh
 ```
 -->
 
 ```bash
-  docker compose up --build
+docker compose up --build
 ```
 
 In another terminal, run:
@@ -32,7 +33,7 @@ docker compose exec pintos bash
 root@pwn13:~# cd pintos/src/threads/
 root@pwn13::~/pintos/src/threads# make
 root@pwn13::~/pintos/src/threads# cd build
-root@pwn13::~/pintos/src/threads/build# pintos --qemu -- 
+root@pwn13::~/pintos/src/threads/build# pintos --qemu --
 ```
 
 Pintos has succesfully booted! :)
@@ -43,7 +44,26 @@ Run multiple alarm:
 root@pwn13::~/pintos/src/threads/build# pintos --qemu -- run alarm-multiple
 ```
 
-## Build
+## ️🔎 Debugging
+
+Beyond writing printf all over the place, it's highly recommended to open a GDB session for
+debugging.
+
+The better way to debug a test is to directly set a breakpoint in the test function:
+
+```console
+(gdb) debugpintos
+(gdb) b test_alarm_multiple
+(gdb) c
+```
+
+### Common debugging commands
+
+```console
+dumplist &all_list thread allelem
+dumplist &all_list thread allelem
+dumplist &sleep_list thread allelem
+```
 
 ## File structure
 
