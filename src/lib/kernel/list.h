@@ -49,7 +49,7 @@
    in the C++ STL.  If you're familiar with list<>, you should
    find this easy to use.  However, it should be emphasized that
    these lists do *no* type checking and can't do much other
-   correctness checking.  If you screw up, it will bite you.
+   correctness checking.  If you screw up, it will bite you. D:
 
    Glossary of list terms:
 
