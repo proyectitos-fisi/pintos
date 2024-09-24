@@ -24,6 +24,12 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* 🧵 project1/task1
+   List of all currently-sleeping threads ordered by [wakeup_tick]
+   ascending. Processes in this list are in THREAD_BLOCKED state,
+   waiting to be woken up by the timer interrupt handler. */
+static struct list sleep_list;
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -93,6 +99,9 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&all_list);
 
+  // 🧵 project1/task1
+  list_init (&sleep_list);
+
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -115,6 +124,61 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+}
+
+/* 🧵 project1/task1
+   Comparator function used by thread_sleep to insert threads into
+   the sleep_list */
+bool
+thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_,
+                         void *aux UNUSED)
+{
+  struct thread *a = list_entry (a_, struct thread, elem);
+  struct thread *b = list_entry (b_, struct thread, elem);
+  return a->wakeup_tick < b->wakeup_tick;
+}
+
+/* 🧵 project1/task1
+   Puts the current thread to sleep until the specified number of ticks
+   has passed. */
+void
+thread_sleep (int64_t ticks)
+{
+  struct thread *cur = thread_current ();
+  enum intr_level old_level;
+
+  ASSERT (is_thread (cur));
+  ASSERT (cur != idle_thread);
+
+  old_level = intr_disable ();
+
+  cur->wakeup_tick = ticks;
+  list_insert_ordered (&sleep_list, &cur->elem, thread_wakeup_tick_less, NULL);
+  thread_block ();
+
+  intr_set_level (old_level);
+}
+
+/* 🧵 project1/task1
+   Wakes up all threads that are scheduled to wake up at or before the
+   specified number of ticks. */
+void
+thread_awake (int64_t ticks)
+{
+  struct list_elem *te = list_begin (&sleep_list);
+  struct thread *t;
+
+  while (!list_empty (&sleep_list))
+    {
+      te = list_begin (&sleep_list);
+      t = list_entry (te, struct thread, elem);
+
+      if (t->wakeup_tick > ticks)
+        break;
+
+      list_remove (te);
+      thread_unblock (t);
+    }
 }
 
 /* Called by the timer interrupt handler at each timer tick.
