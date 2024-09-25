@@ -417,11 +417,33 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+void
+thread_sust (void)
+{
+  if (!list_empty (&ready_list))
+  {
+    struct thread *rlt = list_entry (list_front (&ready_list), struct thread,
+                                                                        elem);
+    if (rlt->priority > thread_get_priority ())
+      thread_yield ();
+  }
+  return;
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
+
+  if (!list_empty (&ready_list))
+  {
+    struct thread *ht = list_entry (list_front (&ready_list), struct thread,
+                                                                      elem);
+
+    if (ht->priority > thread_get_priority ())
+      thread_yield ();
+  }
 }
 
 /* Returns the current thread's priority. */
