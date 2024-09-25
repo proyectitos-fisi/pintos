@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -88,12 +89,28 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    struct list_elem allelem;           /* List element for all threads list. */
+
+    int base_priority;                  /* 🧵 project1/task2
+                                           Priority to be restored after
+                                           priority donation */
+
     int64_t wakeup_tick;                /* 🧵 project1/task1
                                            The tick to wake up the thread */
 
-    /* Shared between thread.c and synch.c. */
+    struct list donors;                 /* 🧵 project1/task2
+                                           List of threads that have donated
+                                           their priority to this thread */
+
+    struct lock* waiting_for;           /* 🧵 project1/task2
+                                           The lock the thread is waiting for */
+
+    /* Shared between thread.c and synch.c.
+       in ready_list, sleep_list, and as a semaphore waiters element. */
     struct list_elem elem;              /* List element. */
+
+    struct list_elem allelem;           /* List element for all threads list. */
+    struct list_elem donorelem;         /* 🧵 project1/task2
+                                           List element for donors list. */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -125,7 +142,14 @@ void thread_unblock (struct thread *);
 
 void thread_sleep (int64_t ticks);
 void thread_awake(int64_t ticks);
-bool thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
+bool thread_wakeup_tick_less (const struct list_elem*, const struct list_elem*, void*);
+
+// 🧵 project1/task2 definitions
+
+bool thread_priority_desc (const struct list_elem*, const struct list_elem*, void*);
+bool thread_priority_asc (const struct list_elem*, const struct list_elem*, void*);
+void thread_sust (void);
+void thread_recalculate_priority (struct thread *t);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
