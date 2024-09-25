@@ -311,7 +311,8 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
 
   // 🧵 project1/task2
-  list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, NULL);
+  // insert the thread in the correct position in the ready list
+  list_insert_ordered (&ready_list, &t->elem, thread_priority_desc, NULL);
 
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -371,14 +372,27 @@ thread_exit (void)
   NOT_REACHED ();
 }
 
-/* 🧵 project1/task2 */
+/* 🧵 project1/task2
+   Comparator functions to insert threads sorting by priority descending
+*/
 bool
-thread_compare_priority (const struct list_elem *a, const struct list_elem *b,
+thread_priority_desc (const struct list_elem *a, const struct list_elem *b,
                          void *aux UNUSED)
 {
   struct thread *ta = list_entry (a, struct thread, elem);
   struct thread *tb = list_entry (b, struct thread, elem);
   return ta->priority > tb->priority;
+}
+
+/* 🧵 project1/task2
+   Comparator functions to insert threads sorting by priority ascending */
+bool
+thread_priority_asc (const struct list_elem *a, const struct list_elem *b,
+                         void *aux UNUSED)
+{
+  struct thread *ta = list_entry (a, struct thread, elem);
+  struct thread *tb = list_entry (b, struct thread, elem);
+  return ta->priority < tb->priority;
 }
 
 /* Yields the CPU.  The current thread is not put to sleep and
@@ -393,9 +407,11 @@ thread_yield (void)
 
   old_level = intr_disable ();
 
-    // 🧵 project1/task2
+  // 🧵 project1/task2
+  // Insert into the ready_list, higher priority threads first,
+  // and only if it's not the idle thread
   if (cur != idle_thread)
-    list_insert_ordered (&ready_list, &cur->elem, thread_compare_priority,
+    list_insert_ordered (&ready_list, &cur->elem, thread_priority_desc,
                          NULL);
   cur->status = THREAD_READY;
   schedule ();
@@ -419,38 +435,68 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+/* 🧵 project1/task2
+   Tries to substitute the current thread for a higher-priority one
+   from the ready list. */
 void
 thread_sust (void)
 {
   if (!list_empty (&ready_list))
   {
     struct thread *rlt = list_entry (list_front (&ready_list), struct thread,
-                                                                        elem);
+                                     elem);
     if (rlt->priority > thread_get_priority ())
       thread_yield ();
   }
-  return;
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
+  struct thread *cur = thread_current ();
+
+  if (cur->priority == new_priority)
+    return;
 
   // 🧵 project1/task2
-  // We need to check if the current thread is no longer the highest priority
-  // thread in the ready list. If it isn't, we yield the processor to the new
-  // highest priority thread.
+  // If the current thread has no donors, we can safely update the
+  // base priority and recalculate the priority without yielding
+  cur->base_priority = new_priority;
+  thread_recalculate_priority (cur);
 
-  if (!list_empty (&ready_list))
+  // 🧵 project1/task2
+  // We may've changed our priority to a lower value,
+  // and thus, we need to check if we should yield
+  thread_sust ();
+}
+
+/* 🧵 project1/task2
+   Recalculates the priority of a thread by inheriting the highest priority
+   of the highest donor. If no donors, priority is reset to its initial value.
+
+   This function assumes:
+   - That the donors list is already sorted in descending priority order.
+   - That the current thread priority is no longer valid and needs to be
+     recalculated.
+*/
+void
+thread_recalculate_priority (struct thread *t)
+{
+  if (list_empty (&t->donors))
     {
-      struct thread *ht = list_entry (list_front (&ready_list), struct thread,
-                                      elem);
-
-      if (ht->priority > thread_get_priority ())
-        thread_yield ();
+      t->priority = t->base_priority;
+      return;
     }
+
+  // New priority is the priority of the highest donor
+  struct thread *highest_donor = list_entry (list_front (&t->donors),
+                                             struct thread, donorelem);
+
+  if (highest_donor->priority > t->base_priority)
+    t->priority = highest_donor->priority;
+  else
+    t->priority = t->base_priority;
 }
 
 /* Returns the current thread's priority. */
@@ -578,6 +624,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  // 🧵 project1/task2 fields initialization
+  t->base_priority = priority;
+  t->waiting_for = NULL;
+  list_init (&t->donors);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

@@ -41,6 +41,13 @@ void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 
+/* 🧵 project1/task2
+   Comparator function used by cond_wait to insert semaphores into
+   the waiters list */
+bool
+semaphore_priority_desc (const struct list_elem *, const struct list_elem *,
+                        void *);
+
 /* Optimization barrier.
 
    The compiler will not reorder operations across an
