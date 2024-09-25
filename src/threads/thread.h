@@ -125,10 +125,10 @@ void thread_unblock (struct thread *);
 
 void thread_sleep (int64_t ticks);
 void thread_awake(int64_t ticks);
-bool thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
+bool thread_wakeup_tick_less (const struct list_elem*, const struct list_elem*, void*);
 
 // 🧵 project1/task2 definitions
-bool thread_compare_priority (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
+bool thread_compare_priority (const struct list_elem*, const struct list_elem*, void*);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
