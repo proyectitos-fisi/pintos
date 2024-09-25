@@ -309,8 +309,10 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+
   // 🧵 project1/task2
   list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, NULL);
+
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -436,14 +438,19 @@ thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
 
-  if (!list_empty (&ready_list))
-  {
-    struct thread *ht = list_entry (list_front (&ready_list), struct thread,
-                                                                      elem);
+  // 🧵 project1/task2
+  // We need to check if the current thread is no longer the highest priority
+  // thread in the ready list. If it isn't, we yield the processor to the new
+  // highest priority thread.
 
-    if (ht->priority > thread_get_priority ())
-      thread_yield ();
-  }
+  if (!list_empty (&ready_list))
+    {
+      struct thread *ht = list_entry (list_front (&ready_list), struct thread,
+                                      elem);
+
+      if (ht->priority > thread_get_priority ())
+        thread_yield ();
+    }
 }
 
 /* Returns the current thread's priority. */
