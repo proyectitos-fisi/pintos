@@ -38,9 +38,8 @@ Git diff — <https://github.com/proyectitos-fisi/pintos/pull/1/files>
 > `struct` member, global or static variable, `typedef`, or
 > enumeration.  Identify the purpose of each in 25 words or less.
 
-Threads now maintain a `wakeup_tick` field to store the tick when
-the thread should wake up. This field is only meaningful for threads
-in the `sleep_list`.
+Threads now maintain a `wakeup_tick` field to store the tick when they
+should wake up. This is only meaningful for threads in the `sleep_list`.
 
 ```c
 // Added to struct thread (thread.h)
@@ -49,8 +48,8 @@ int64_t wakeup_tick;    /* The tick to wake up the thread */
 ```
 
 List of all currently-sleeping threads ordered by `wakeup_tick`
-ascending. Processes in this list are in `THREAD_BLOCKED` state,
-waiting to be woken up by the timer interrupt handler.
+ascending. Threads in this list are waiting to be woken up by
+the timer interrupt handler.
 
 ```c
 // Added to global scope (thread.c)
@@ -123,11 +122,25 @@ advantage in using them.
 
 ## Priority scheduling
 
+Git diff — <https://github.com/proyectitos-fisi/pintos/pull/2/files>
+
 ### Data Structures
 
 > **B1:** Copy here the declaration of each new or changed `struct` or
 > `struct` member, global or static variable, `typedef', or
 > enumeration.  Identify the purpose of each in 25 words or less.
+
+```c
+// Added to struct thread (thread.h)
+
+int base_priority;           /* Priority to be restored after priority donation */
+
+struct list donors;          /* List of threads that have donated their priority to this thread */
+
+struct lock* waiting_for;    /* The lock the thread is waiting for */
+
+struct list_elem donorelem;  /* List element for donors list */
+```
 
 > **B2:** Explain the data structure used to track priority donation.
 > Use ASCII art to diagram a nested donation.  (Alternately, submit a
@@ -138,11 +151,52 @@ advantage in using them.
 > **B3:** How do you ensure that the highest priority thread waiting for
 > a lock, semaphore, or condition variable wakes up first?
 
+Under the hood, both locks and condition are using semaphores, so let's start from them.
+
+When choosing the next thread to unblock from the waiters list, the semaphore explicitly
+chooses the one with the highest priority.
+
+```c
+// sema_up() in synch.c
+
+struct list_elem *e = list_max (&sema->waiters, thread_priority_asc, NULL);
+list_remove (e);
+thread_unblock (list_entry (e, struct thread, elem));
+```
+
+Even though waiters are already inserted in ascending order, their priority may have
+changed at the time we pop them from the list. No assumptions are made.
+
+This is the same for locks, which are just a wrapper around a binary semaphore.
+
+A similar mechanism is used by condition variables. When signaling (or broadcasting)
+the highest priority **semaphore** is explicitly choosen. A semaphore `S1` has higher
+priority than a semaphore `S2` if its top waiter thread has higher priority.
+
 > **B4:** Describe the sequence of events when a call to `lock_acquire()`
 > causes a priority donation.  How is nested donation handled?
 
+When a thread `T1` has acquired a lock `L` without needing to block,
+no priority donation occurs.
+
+However, if a higher-priority thread `T2` then tries to acquire the same lock `L`,
+it will block. Before blocking, `T2` donates its priority to `T1`.
+Priority donation has occurred.
+
+To handle nested donation, the same logic is applied recursively to the thread
+that has received the donation. If `T1` was already waiting for another lock,
+its holder will also receive the donation, and so on.
+
 > **B5:** Describe the sequence of events when `lock_release()` is called
 > on a lock that a higher-priority thread is waiting for.
+
+Let's call the caller thread `T1` and the higher-priority thread `T2`.
+
+Under the hood, a lock release calls `sema_up()`. The semaphore implementation
+unblocks the highest priority thread waiting for it, `T2` in this case.
+
+Then, a thread substitution check is made. If `T2` has higher priority than `T1`
+(and it does), `T1` will yield the processor to `T2`.
 
 ### Synchronization
 
@@ -150,12 +204,34 @@ advantage in using them.
 > how your implementation avoids it.  Can you use a lock to avoid
 > this race?
 
+There is a potential race condition that may ruin our priority donation mechanism.
+
+A running thread is not aware that it has received a priority donation. It just
+just continues its business. Let's say that right at that moment the thread
+lowers its priority by calling `thread_set_priority()`. Then **the donation is lost**.
+
+To avoid this, our implementation only updates the priority if its higher than
+any of the donors.
+
 ### Rationale
 
 > **B7:** Why did you choose this design?  In what ways is it superior to
 > another design you considered?
 
-## ADVANCED SCHEDULER
+In a nutshell, we maintain a list of `donors` to handle multiple donations, and a
+`waiting_for` field to handle nested donations.
+
+This information lives within the thread structure itself. An alternative solution
+could keep track of donations in a separate data structure, like a global donation
+manager that keeps track of all donations across threads, allowing more thorough
+analysis of the donation chain.
+
+The downside of this approach is that it would require additional synchronization
+mechanisms and could potentially lead to more complex code.
+
+## Advanced Scheduler
+
+Git diff — <https://github.com/proyectitos-fisi/pintos/pull/3/files>
 
 ### Data Structures
 
