@@ -133,8 +133,8 @@ bool
 thread_wakeup_tick_less (const struct list_elem *a_, const struct list_elem *b_,
                          void *aux UNUSED)
 {
-  struct thread *a = list_entry (a_, struct thread, elem);
-  struct thread *b = list_entry (b_, struct thread, elem);
+  struct sleeping_thread *a = list_entry (a_, struct sleeping_thread, elem);
+  struct sleeping_thread *b = list_entry (b_, struct sleeping_thread, elem);
   return a->wakeup_tick < b->wakeup_tick;
 }
 
@@ -150,13 +150,22 @@ thread_sleep (int64_t ticks)
   ASSERT (is_thread (cur));
   ASSERT (cur != idle_thread);
 
+  // We create and register a sleeping_thread struct to keep track of the
+  // thread that is sleeping
+
+  struct sleeping_thread *st;
+  st->t = cur;
+  st->wakeup_tick = ticks;
+  sema_init (&st->sema, 0); // Wake up semaphore
+
   old_level = intr_disable ();
 
-  cur->wakeup_tick = ticks;
-  list_insert_ordered (&sleep_list, &cur->elem, thread_wakeup_tick_less, NULL);
-  thread_block ();
+  list_insert_ordered (&sleep_list, &st->elem, thread_wakeup_tick_less, NULL);
 
   intr_set_level (old_level);
+
+  // This semaphore will be upped by the timer interrupt handler
+  sema_down (&st->sema);
 }
 
 /* 🧵 project1/task1
@@ -166,18 +175,19 @@ void
 thread_awake (int64_t ticks)
 {
   struct list_elem *te = list_begin (&sleep_list);
-  struct thread *t;
+  struct sleeping_thread *t;
 
   while (!list_empty (&sleep_list))
     {
       te = list_begin (&sleep_list);
-      t = list_entry (te, struct thread, elem);
+      t = list_entry (te, struct sleeping_thread, elem);
 
       if (t->wakeup_tick > ticks)
         break;
 
       list_remove (te);
-      thread_unblock (t);
+      // Wake up the thread
+      sema_up (&t->sema);
     }
 }
 

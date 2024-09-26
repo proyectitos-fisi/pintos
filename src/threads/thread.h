@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -89,9 +90,6 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-    int64_t wakeup_tick;                /* 🧵 project1/task1
-                                           The tick to wake up the thread */
-
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -103,6 +101,21 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+/* 🧵 project1/task1
+   The motivation to create a separate struct for sleeping threads is to
+   avoid cluttering the thread structure with additional fields that are
+   only used when the thread is sleeping.
+
+   Another motivation is that if we directly append the thread struct into
+   the sleep_list then the memory will get corrupted when the thread is
+   appended to the semaphore waiters list. */
+struct sleeping_thread {
+    struct thread *t;             /* The thread to sleep */
+    int64_t wakeup_tick;          /* The tick to wake up the thread */
+    struct semaphore sema;        /* Semaphore to block the thread */
+    struct list_elem elem;        /* List element */
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
