@@ -4,7 +4,7 @@
 
 <h2>Project 1: Threads</h2>
 
-Operating systems — National University of San Marcos
+Operating Systems — National University of San Marcos
 
 </div>
 
@@ -47,9 +47,9 @@ should wake up. This is only meaningful for threads in the `sleep_list`.
 int64_t wakeup_tick;    /* The tick to wake up the thread */
 ```
 
-List of all currently-sleeping threads ordered by `wakeup_tick`
-ascending. Threads in this list are waiting to be woken up by
-the timer interrupt handler.
+And to keep track of sleeping threads, a global list was created.
+Threads in this list are waiting to be woken up by the timer interrupt
+handler.
 
 ```c
 // Added to global scope (thread.c)
@@ -62,14 +62,16 @@ static struct list sleep_list;
 > **A2:** Briefly describe what happens in a call to `timer_sleep()`,
 > including the effects of the timer interrupt handler.
 
-- The algorithm first checks for interrupts to be enabled, because unblocking depends
+When a thread calls `timer_sleep()`:
+
+- The algorithm first checks for interrupts to be **enabled**, because unblocking depends
   on the timer interrupt handler.
 
-- The thread calculates its wakeup_tick and adds itself to the `sleep_list`, in a
+- The thread calculates its `wakeup_tick` and adds itself to the `sleep_list`, in a
   `THREAD_BLOCKED` state.
 
-- A `schedule()` call forces a context switch. Since the thread is not in the ready queue,
-  the next thread to run will be the one with the highest priority.
+- Then, a `schedule()` call **forces a context switch**. The next thread to run will be
+  the one with the highest priority, replacing the current one.
 
 - The timer interrupt handler continuously checks the `sleep_list` and unblocks threads
   whose `wakeup_tick` has passed.
@@ -77,8 +79,10 @@ static struct list sleep_list;
 > **A3:** What steps are taken to minimize the amount of time spent in
 > the timer interrupt handler?
 
+To minimize the time spent in the timer interrupt handler:
+
 - Each time we are about to insert a thread into the `sleep_list`, we check if it should
-  be woken up immediately. If so, we unblock it right away.
+  be woken up immediately. If so, we don't sleep and return.
 
 - The `sleep_list` is sorted by `wakeup_tick` in ascending order. Thus the interrupt
   handler only checks from the beginning of the list until it finds a thread that should
@@ -93,15 +97,16 @@ Critical sections of the code, like modifying the `sleep_list`, are run with int
 disabled. This ensures that no other thread can interrupt the current one and modify
 the list at the same time.
 
-Furthermore, due to the fact that Pintos is a single processor system, threads cannot
+Furthermore, due to the fact that Pintos is a single processor system, threads **cannot**
 really call `timer_sleep()` simultaneously.
 
 > **A5:** How are race conditions avoided when a timer interrupt occurs
 > during a call to `timer_sleep()`?
 
-As stated before, interrupts are disabled in critical sections of the code.
+As stated before, interrupts are disabled in critical sections of the code, thus
+disabling concurrency.
 
-Moreover, the timer interrupt handler is run at **external** interrupt level, meaning
+Moreover, the timer interrupt handler is run at an **external interrupt level**, meaning
 regular thread code cannot preempt it.
 
 ### Rationale
@@ -109,16 +114,17 @@ regular thread code cannot preempt it.
 > **A6:** Why did you choose this design?  In what ways is it superior to
 > another design you considered?
 
-Another design we considered was to use synchronization primitives that already
-implement blocking and unblocking funcionality, like semaphores.
+Another design we considered was to sleep using synchronization primitives that
+already implement blocking and unblocking funcionality, like semaphores.
 
-Actually, [we did implement it](https://github.com/proyectitos-fisi/pintos/pull/4),
+Actually,
+[we did implement it](https://github.com/proyectitos-fisi/pintos/pull/4/commits/eb9b5fdaac684e06709aac89c09fed966afec63c),
 but the extra synchronization overhead and code complexity (maintaining a semaphore
 for each sleeping thread) made us keep the simpler design.
 
-Furthermore, using semaphores still requires maintaining a list of sleeping threads
-and checking them the same way in the timer interrupt handler, so there is no real
-advantage in using them.
+Furthermore, using semaphores **still requires** maintaining a list of sleeping
+threads and checking them the same way in the timer interrupt handler, so **there
+is no real advantage in using semaphores** for this specific case.
 
 ## Priority scheduling
 
@@ -145,6 +151,11 @@ struct list_elem donorelem;  /* List element for donors list */
 > **B2:** Explain the data structure used to track priority donation.
 > Use ASCII art to diagram a nested donation.  (Alternately, submit a
 > .png file.)
+
+With storing a pointer to the lock that blocks the thread, nested donations take the
+form of a linked list of threads waiting for locks.
+
+![Nested priority donation](./assets/nested_priority_donation.png)
 
 ### Algorithms
 
