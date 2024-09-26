@@ -246,71 +246,123 @@ Git diff — <https://github.com/proyectitos-fisi/pintos/pull/3/files>
 
 ### Data Structures
 
-> C1: Copy here the declaration of each new or changed `struct` or
+> **C1:** Copy here the declaration of each new or changed `struct` or
 > `struct` member, global or static variable, `typedef', or
 > enumeration.  Identify the purpose of each in 25 words or less.
 
+```c
+// Added to struct thread (thread.h)
+
+fixed_point_t nice;        /* A hint to the scheduler about how likely
+                              the thread is to yield the CPU */
+
+fixed_point_t recent_cpu;  /* Measure how much CPU time each thread
+                              has received “recently” */
+```
+
+The `load_avg` is a [moving average](https://en.wikipedia.org/wiki/Moving_average) that
+measures the average number of threads ready to run over the past minute.
+
+```c
+// Added to global scope (thread.c)
+
+fixed_point_t load_avg;   /* System-wide load average,
+                             updated every TIMER_FREQ ticks */
+```
+
 ### Algorithms
 
-> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
-> has a recent_cpu value of 0.  Fill in the table below showing the
-> scheduling decision and the priority and recent_cpu values for each
+> **C2:** Suppose threads A, B, and C have nice values 0, 1, and 2. Each
+> has a `recent_cpu` value of 0.  Fill in the table below showing the
+> scheduling decision and the priority and `recent_cpu` values for each
 > thread after each given number of timer ticks:
 
+```m
 timer  recent_cpu    priority   thread
 ticks   A   B   C   A   B   C   to run
------  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
+-----  --- --- --- --- --- ---  -------
+ 0      0   0   0   63  61  59   A
+ 4      4   0   0   62  61  59   A
+ 8      8   0   0   61  61  59   B
+12      8   4   0   61  60  59   A
+16     12   4   0   60  60  59   B
+20     12   8   0   60  59  59   A
+24     16   8   0   59  59  59   C
+28     16   8   4   59  59  58   B
+32     16  12   4   59  58  58   A
+36     20  12   4   58  58  58   C
+```
 
-> C3: Did any ambiguities in the scheduler specification make values
+We assume that the `load_avg` and `recent_cpu` values are
+set to 0 at the beginning of the simulation.
+
+> **C3:** Did any ambiguities in the scheduler specification make values
 > in the table uncertain?  If so, what rule did you use to resolve
 > them?  Does this match the behavior of your scheduler?
 
-> C4: How is the way you divided the cost of scheduling between code
+Yes. Equations depend on values that are updated in no specific order.
+
+Another ambiguity is how we handle equal priorities. We chose to run the
+thread that has been waiting the longest. This does not match the behavior
+of our implementation.
+
+> **C4:** How is the way you divided the cost of scheduling between code
 > inside and outside interrupt context likely to affect performance?
+
+By offloading as much work as possible to outside of the interrupt
+context, the scheduler avoids delaying critical time-sensitive operations.
+
+For example, recalculating `recent_cpu` and updating thread priorities
+are complex operations and are best handled outside of the interrupt
+handler to avoid performance bottlenecks. This division improves system
+responsiveness and overall throughput.
 
 ### Rationale
 
-> C5: Briefly critique your design, pointing out advantages and
+> **C5:** Briefly critique your design, pointing out advantages and
 > disadvantages in your design choices.  If you were to have extra
 > time to work on this part of the project, how might you choose to
 > refine or improve your design?
 
-> C6: The assignment explains arithmetic for fixed-point math in
+#### Advantages
+
+- Dynamic Scheduling: The use of `nice`, `recent_cpu`, and `load_avg`
+  allows for a dynamic adjustment of priorities based on real-time
+  behavior, making the scheduler more fair and responsive.
+- Simplicity: Placing all scheduling-relevant data within each thread's
+  structure makes the code easier to manage and understand, and provides
+  additional insights into the system's behavior.
+- No global data structures: Our design avoids the use of complex shared
+  data structures, as a traditional MLFQ would require.
+
+#### Disadvantages
+
+- Overhead: The recalculation of `priority`, `recent_cpu` and `load_avg`
+  add extra overhead to the timer interrupt, which is supposed to finish
+  as soon as possible.
+- Lack of Preemption: If a thread with a high recent CPU value continues
+  to run, it may dominate the CPU for longer than desirable, especially
+  in a system with soft real-time constraints.
+
+#### Refinements
+
+- Improved Preemption: Adding a mechanism to preempt long-running threads
+  that dominate the CPU could improve responsiveness for lower-priority threads.
+- Improving Readability: We could use macros to abstract the actual
+  equations used to calculate `priority`, `recent_cpu`, and `load_avg`.
+
+> **C6:** The assignment explains arithmetic for fixed-point math in
 > detail, but it leaves it open to you to implement it.  Why did you
 > decide to implement it the way you did?  If you created an
 > abstraction layer for fixed-point math, that is, an abstract data
 > type and/or a set of functions or macros to manipulate fixed-point
 > numbers, why did you do so?  If not, why not?
 
-## Survey Questions
+Abstracting fixed-point arithmetic into a separate module was a
+mandatory design choice. Algorithms care about the results, not the
+underlying representation.
 
-Answering these questions is optional, but it will help us improve the
-course in future quarters.  Feel free to tell us anything you
-want--these questions are just to spur your thoughts.  You may also
-choose to respond anonymously in the course evaluations at the end of
-the quarter.
+We used macros to avoid the overhead of function calls.
 
-> In your opinion, was this assignment, or any one of the three problems
-> in it, too easy or too hard?  Did it take too long or too little time?
-
-> Did you find that working on a particular part of the assignment gave
-> you greater insight into some aspect of OS design?
-
-> Is there some particular fact or hint we should give students in
-> future quarters to help them solve the problems?  Conversely, did you
-> find any of our guidance to be misleading?
-
-> Do you have any suggestions for the TAs to more effectively assist
-> students, either for future quarters or the remaining projects?
-
-> Any other comments?
+For readability, we created an alias for `int` called `fixed_point_t`.
+This way readers can easily identify fixed-point values.
