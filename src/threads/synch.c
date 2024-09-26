@@ -211,6 +211,15 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  /* 🧵 project1/task3 */
+  if (thread_mlfqs)
+  {
+    // If MLFQS is enabled, we don't need to perform priority donation
+    sema_down (&lock->semaphore);
+    lock->holder = thread_current ();
+    return;
+  }
+
   /* 🧵 project1/task2 */
 
   struct thread *cur = thread_current ();
@@ -298,26 +307,29 @@ lock_release (struct lock *lock)
 
   // We are releasing! But before we call sema_up and notify
   // the waiters, we update our donors list
-
-  struct thread *cur = thread_current ();
-  struct list_elem *e = list_begin (&cur->donors);
-
-  while (e != list_end (&cur->donors))
+  if (!thread_mlfqs) // 🧵 project1/task3: Only if MLFQS is not enabled...
     {
-      struct thread *donor = list_entry (e, struct thread, donorelem);
+      struct thread *cur = thread_current ();
+      struct list_elem *e = list_begin (&cur->donors);
 
-      // If a donor was waiting for this lock, remove it
-      if (donor->waiting_for == lock)
+      while (e != list_end (&cur->donors))
         {
-          donor->waiting_for = NULL;
-          e = list_remove (e);
+          struct thread *donor = list_entry (e, struct thread, donorelem);
+
+          // If a donor was waiting for this lock, remove it
+          if (donor->waiting_for == lock)
+            {
+              donor->waiting_for = NULL;
+              e = list_remove (e);
+            }
+          else
+            e = list_next (e);
         }
-      else
-        e = list_next (e);
+
+      // Our donor may've been released, so we need to recalculate
+      thread_recalculate_priority (cur);
     }
 
-  // Our donor may've been released, so we need to recalculate
-  thread_recalculate_priority (cur);
   sema_up (&lock->semaphore);
 }
 

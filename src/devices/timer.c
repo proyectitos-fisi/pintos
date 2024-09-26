@@ -96,7 +96,8 @@ timer_sleep (int64_t ticks)
   // 🧵 project1/task1
   if (timer_elapsed (start) < ticks)
     {
-      // Needs to be created in thread.c since it access static variable sleep_list
+      // Needs to be created in thread.c since it access static variable
+      // sleep_list
       thread_sleep (start + ticks);
     }
 }
@@ -178,6 +179,18 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  // 🧵 project1/task3
+  if (thread_mlfqs)
+  {
+    inc_recent_cpu ();
+    if (ticks % TIMER_FREQ == 0)
+    {
+      mlfqs_update_load_avg ();
+      mlfqs_update_recent_cpu ();
+    }
+    if (ticks % 4 == 0) // every 4th tick the priority is recalculated
+      mlfqs_update_priority ();
+  }
 
   // 🧵 project1/task1 wake up routine
   thread_awake (ticks);
