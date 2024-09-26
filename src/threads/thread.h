@@ -103,6 +103,10 @@ struct thread
 
     struct lock* waiting_for;           /* 🧵 project1/task2
                                            The lock the thread is waiting for */
+    /* 🧵 project1/task3 */
+    int nice;                           /* Thread's niceness value */
+    int recent_cpu;                     /* Measure how much CPU time each
+                                           thread has received “recently” */
 
     /* Shared between thread.c and synch.c.
        in ready_list, sleep_list, and as a semaphore waiters element. */
@@ -150,6 +154,14 @@ bool thread_priority_desc (const struct list_elem*, const struct list_elem*, voi
 bool thread_priority_asc (const struct list_elem*, const struct list_elem*, void*);
 void thread_sust (void);
 void thread_recalculate_priority (struct thread *t);
+
+// 🧵 project1/task3 definitions
+
+void inc_recent_cpu (void);
+void mlfqs_priority (struct thread *t);
+void mlfqs_update_priority (void);
+void mlfqs_update_recent_cpu (void);
+void mlfqs_update_load_avg (void);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
